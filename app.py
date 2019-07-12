@@ -4,8 +4,10 @@ import requests
 import pprint
 
 app = Flask(__name__)
-API_TOKEN = config('API_TOKEN')  # 상수는 대문자
 
+API_TOKEN = config('API_TOKEN')  # 상수는 대문자
+NAVER_CLIENT_ID = config('NAVER_CLIENT_ID')
+NAVER_CLIENT_SECRET = config('NAVER_CLIENT_SECRET')
 
 @app.route('/')
 def hello():
@@ -26,9 +28,40 @@ def telegram():
         # print('chat_id : ', chat_id)
         # print('text : ', text)
 
-        if text == 'ㅇㅅㅇ?':
-            text = 'ㅇㅅㅇ!'
-    
+        # if text == 'ㅇㅅㅇ?':  # ㅇㅅㅇ? 라고 보내면 ㅇㅅㅇ!라고 답옴
+        #     text = 'ㅇㅅㅇ!'
+        
+        if text[0:4] == '/영한 ':
+            headers = { 
+                'X-Naver-Client-Id': NAVER_CLIENT_ID,  # trailing comma ',' 찍어주는 것
+                'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
+            }
+            data = {
+                'source': 'en',
+                'target': 'ko',
+                'text': text[4:] # '/번역' 이후의 문자열만 대상으로 번역
+            }
+            papago_url = 'https://openapi.naver.com/v1/papago/n2mt'
+            papago_res = requests.post(papago_url, headers=headers, data=data)   
+            text = papago_res.json().get('message').get('result').get('translatedText')
+
+
+        if text[0:4] == '/한영 ':
+            headers = { 
+                'X-Naver-Client-Id': NAVER_CLIENT_ID,  # trailing comma ',' 찍어주는 것
+                'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
+            }
+            data = {
+                'source': 'ko',
+                'target': 'en',
+                'text': text[4:] # '/번역' 이후의 문자열만 대상으로 번역
+            }
+            papago_url = 'https://openapi.naver.com/v1/papago/n2mt'
+            papago_res = requests.post(papago_url, headers=headers, data=data)   
+            text = papago_res.json().get('message').get('result').get('translatedText')        
+
+
+
         # 받은 메세지를 보낸 사람한테 그대로 전달(Send Message Logic)
         base_url = 'https://api.telegram.org'
         api_url = f'{base_url}/bot{API_TOKEN}/sendMessage?chat_id={chat_id}&text={text}'
